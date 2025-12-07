@@ -16,6 +16,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Report services
+builder.Services.AddScoped<ReportingService.Services.IPdfReportService, ReportingService.Services.PdfReportService>();
+builder.Services.AddScoped<ReportingService.Services.IExcelReportService, ReportingService.Services.ExcelReportService>();
+
 // Quartz for scheduled reports
 builder.Services.AddQuartz(q =>
 {

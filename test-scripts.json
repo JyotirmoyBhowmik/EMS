@@ -1,0 +1,6 @@
+{
+    "scripts": {
+        "test:backend": "dotnet test backend/ScadaCore/ScadaCore.csproj && dotnet test backend/AlarmManagement/AlarmManagement.csproj",
+        "test:frontend": "cd frontend/scada-dashboard && npm test"
+    }
+}

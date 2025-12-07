@@ -1,6 +1,9 @@
 using AlarmManagement.Services;
+using AlarmManagement.Data;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Prometheus;
+
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -23,7 +26,15 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Database
+var postgresConnection = builder.Configuration.GetConnectionString("PostgreSQL") 
+    ?? Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")
+    ?? "Host=postgres;Database=scada;Username=scada;Password=scada123";
+builder.Services.AddDbContext<AlarmManagement.Data.AlarmDbContext>(options =>
+    options.UseNpgsql(postgresConnection));
+
 // Alarm services
+builder.Services.AddScoped<IAlarmService, AlarmService>();
 builder.Services.AddSingleton<RabbitMQAlarmService>();
 builder.Services.AddSingleton<EmailNotificationService>();
 builder.Services.AddSingleton<SMSNotificationService>();

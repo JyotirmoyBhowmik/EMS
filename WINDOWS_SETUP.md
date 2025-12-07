@@ -797,7 +797,42 @@ docker ps
 # - scada-influxdb
 # - scada-postgres  
 # - scada-rabbitmq
-# - scada-redis
+### Step 11: Load Database Schema and Seed Data
+
+Now that databases are running, let's load the schema and initial data:
+
+```powershell
+# Load initial database schema
+docker exec -i scada-postgres psql -U scada -d scada < database/migrations/001_initial_schema.sql
+
+# Load default seed data (roles, demo users, basic tags)
+docker exec -i scada-postgres psql -U scada -d scada < database/migrations/002_seed_data.sql
+
+# Load extended industrial equipment tags (130+ tags)
+# This includes: Siemens PLCs, Schneider meters, compressors, HVAC, flow meters, manufacturing equipment
+docker exec -i scada-postgres psql -U scada -d scada < database/migrations/003_extended_equipment_tags.sql
+
+# Verify data was loaded
+docker exec -it scada-postgres psql -U scada -d scada -c "SELECT COUNT(*) as total_tags FROM tags;"
+# Should show 130+ tags
+
+docker exec -it scada-postgres psql -U scada -d scada -c "SELECT device_type, COUNT(*) as count FROM tags GROUP BY device_type ORDER BY count DESC;"
+# Shows tags grouped by equipment type
+```
+
+**What was just loaded:**
+- ✅ **Database schema** - All tables (tags, sites, users, alarms, etc.)
+- ✅ **3 Demo users** - Administrator, Engineer, Operator (password: Admin123!)
+- ✅ **17 Original demo tags** - Wind turbine, solar panel, battery
+- ✅ **130+ Industrial equipment tags** - Real equipment from:
+  - 🏭 **Siemens PLCs** (S7-1500, S7-1200, LOGO!) - 23 tags
+  - ⚡ **Schneider Energy Meters** (PM8000, iEM3000) - 18 tags
+  - 🔧 **Atlas Copco Compressor** - 10 tags
+  - 🌡️ **HVAC Systems** (AHU, Chiller) - 19 tags
+  - 💧 **Flow Meters** (Siemens, Coriolis) - 9 tags
+  - 🏭 **Manufacturing** (CNC, Injection Molding, Robot, Packaging, Welding) - 35 tags
+
+**Need to add YOUR equipment?** See the detailed guide: `docs/ADDING_EQUIPMENT_GUIDE.md`
 
 # Check logs to ensure no errors
 docker-compose logs influxdb

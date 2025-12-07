@@ -1,221 +1,346 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ScadaCore.Data;
 using ScadaCore.Models;
 using ScadaCore.Services;
 
 namespace ScadaCore.Controllers;
 
-/// <summary>
-/// API controller for tag management operations
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class TagsController : ControllerBase
 {
-    private readonly TagManagementService _tagService;
-    private readonly InfluxDBService _influxService;
-    private readonly TagCacheService _cacheService;
     private readonly ILogger<TagsController> _logger;
+    private readonly ScadaDbContext _context;
+    private readonly ITagService _tagService;
 
-    public TagsController(
-        TagManagementService tagService,
-        InfluxDBService influxService,
-        TagCacheService cacheService,
-        ILogger<TagsController> logger)
+    public TagsController(ILogger<TagsController> logger, ScadaDbContext context, ITagService tagService)
     {
-        _tagService = tagService;
-        _influxService = influxService;
-        _cacheService = cacheService;
         _logger = logger;
+        _context = context;
+        _tagService = tagService;
     }
 
     /// <summary>
     /// Get all tags with optional filtering
     /// </summary>
-    /// <param name="site">Filter by site</param>
-    /// <param name="device">Filter by device</param>
-    /// <param name="isEnabled">Filter by enabled status</param>
-    /// <param name="skip">Number of records to skip (pagination)</param>
-    /// <param name="take">Number of records to take (pagination)</param>
     [HttpGet]
-    [ProducesResponseType(typeof(List<Tag>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetTags(
+    public async Task<ActionResult<IEnumerable<Tag>>> GetTags(
+        [FromQuery] string? search = null,
         [FromQuery] string? site = null,
-        [FromQuery] string? device = null,
+        [FromQuery] string? deviceType = null,
         [FromQuery] bool? isEnabled = null,
-        [FromQuery] int skip = 0,
-        [FromQuery] int take = 100)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
-        var tags = await _tagService.GetTagsAsync(site, device, isEnabled, skip, take);
-        return Ok(tags);
+        try
+        {
+            var query = _context.Tags.AsQueryable();
+
+            // Apply filters
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(t => t.Name.Contains(search) || t.Description.Contains(search));
+            }
+
+            if (!string.IsNullOrEmpty(site))
+            {
+                query = query.Where(t => t.Site != null && t.Site.Name == site);
+            }
+
+            if (!string.IsNullOrEmpty(deviceType))
+            {
+                query = query.Where(t => t.DeviceType == deviceType);
+            }
+
+            if (isEnabled.HasValue)
+            {
+                query = query.Where(t => t.IsEnabled == isEnabled.Value);
+            }
+
+            // Pagination
+            var totalCount = await query.CountAsync();
+            var tags = await query
+                .Include(t => t.Site)
+                .OrderBy(t => t.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            Response.Headers.Add("X-Total-Count", totalCount.ToString());
+            Response.Headers.Add("X-Page", page.ToString());
+            Response.Headers.Add("X-Page-Size", pageSize.ToString());
+
+            return Ok(tags);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving tags");
+            return StatusCode(500, "Internal server error");
+        }
     }
 
     /// <summary>
-    /// Get a specific tag by ID
+    /// Get tag by name
     /// </summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Tag), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetTag(int id)
+    [HttpGet("{name}")]
+    public async Task<ActionResult<Tag>> GetTag(string name)
     {
-        var tag = await _tagService.GetTagByIdAsync(id);
-        if (tag == null)
-            return NotFound();
+        try
+        {
+            var tag = await _tagService.GetTagByNameAsync(name);
 
-        return Ok(tag);
+            if (tag == null)
+            {
+                return NotFound($"Tag '{name}' not found");
+            }
+
+            return Ok(tag);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving tag {TagName}", name);
+            return StatusCode(500, "Internal server error");
+        }
     }
 
     /// <summary>
-    /// Get a tag by name
+    /// Get current value of a tag
     /// </summary>
-    [HttpGet("by-name/{tagName}")]
-    [ProducesResponseType(typeof(Tag), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetTagByName(string tagName)
+    [HttpGet("{name}/value")]
+    public async Task<ActionResult<object>> GetTagValue(string name)
     {
-        var tag = await _tagService.GetTagByNameAsync(tagName);
-        if (tag == null)
-            return NotFound();
+        try
+        {
+            var value = await _tagService.GetCurrentValueAsync(name);
 
-        return Ok(tag);
+            if (value == null)
+            {
+                return NotFound($"No value found for tag '{name}'");
+            }
+
+            return Ok(value);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving value for tag {TagName}", name);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Get historical data for a tag
+    /// </summary>
+    [HttpGet("{name}/history")]
+    public async Task<ActionResult<IEnumerable<object>>> GetTagHistory(
+        string name,
+        [FromQuery] DateTime? start = null,
+        [FromQuery] DateTime? end = null,
+        [FromQuery] int limit = 1000)
+    {
+        try
+        {
+            var startTime = start ?? DateTime.UtcNow.AddHours(-24);
+            var endTime = end ?? DateTime.UtcNow;
+
+            var history = await _tagService.GetHistoricalDataAsync(name, startTime, endTime, limit);
+
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving history for tag {TagName}", name);
+            return StatusCode(500, "Internal server error");
+        }
     }
 
     /// <summary>
     /// Create a new tag
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(typeof(Tag), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateTag([FromBody] Tag tag)
+    public async Task<ActionResult<Tag>> CreateTag([FromBody] Tag tag)
     {
         try
         {
-            var createdTag = await _tagService.CreateTagAsync(tag);
-            return CreatedAtAction(nameof(GetTag), new { id = createdTag.Id }, createdTag);
+            // Validate tag
+            if (string.IsNullOrEmpty(tag.Name))
+            {
+                return BadRequest("Tag name is required");
+            }
+
+            // Check if tag already exists
+            var existing = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tag.Name);
+            if (existing != null)
+            {
+                return Conflict($"Tag '{tag.Name}' already exists");
+            }
+
+            tag.Id = Guid.NewGuid();
+            tag.CreatedAt = DateTime.UtcNow;
+            tag.UpdatedAt = DateTime.UtcNow;
+
+            _context.Tags.Add(tag);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Created tag {TagName}", tag.Name);
+
+            return CreatedAtAction(nameof(GetTag), new { name = tag.Name }, tag);
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            _logger.LogError(ex, "Error creating tag");
+            return StatusCode(500, "Internal server error");
         }
     }
 
     /// <summary>
     /// Update an existing tag
     /// </summary>
-    [HttpPut("{id}")]
-    [ProducesResponseType(typeof(Tag), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateTag(int id, [FromBody] Tag tag)
+    [HttpPut("{name}")]
+    public async Task<ActionResult<Tag>> UpdateTag(string name, [FromBody] Tag updatedTag)
     {
         try
         {
-            var updatedTag = await _tagService.UpdateTagAsync(id, tag);
-            return Ok(updatedTag);
+            var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == name);
+
+            if (tag == null)
+            {
+                return NotFound($"Tag '{name}' not found");
+            }
+
+            // Update properties
+            tag.Description = updatedTag.Description ?? tag.Description;
+            tag.Unit = updatedTag.Unit ?? tag.Unit;
+            tag.MinValue = updatedTag.MinValue;
+            tag.MaxValue = updatedTag.MaxValue;
+            tag.IsEnabled = updatedTag.IsEnabled;
+            tag.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Updated tag {TagName}", name);
+
+            return Ok(tag);
         }
-        catch (KeyNotFoundException)
+        catch (Exception ex)
         {
-            return NotFound();
+            _logger.LogError(ex, "Error updating tag {TagName}", name);
+            return StatusCode(500, "Internal server error");
         }
     }
 
     /// <summary>
     /// Delete a tag
     /// </summary>
-    [HttpDelete("{id}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteTag(int id)
+    [HttpDelete("{name}")]
+    public async Task<ActionResult> DeleteTag(string name)
     {
         try
         {
-            await _tagService.DeleteTagAsync(id);
+            var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == name);
+
+            if (tag == null)
+            {
+                return NotFound($"Tag '{name}' not found");
+            }
+
+            _context.Tags.Remove(tag);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted tag {TagName}", name);
+
             return NoContent();
         }
-        catch (KeyNotFoundException)
+        catch (Exception ex)
         {
-            return NotFound();
+            _logger.LogError(ex, "Error deleting tag {TagName}", name);
+            return StatusCode(500, "Internal server error");
         }
     }
 
     /// <summary>
-    /// Search tags by name pattern
+    /// Bulk import tags from CSV
     /// </summary>
-    [HttpGet("search")]
-    [ProducesResponseType(typeof(List<Tag>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> SearchTags([FromQuery] string query)
+    [HttpPost("import")]
+    public async Task<ActionResult<object>> ImportTags([FromBody] List<Tag> tags)
     {
-        var tags = await _tagService.SearchTagsAsync(query);
-        return Ok(tags);
+        try
+        {
+            int created = 0;
+            int skipped = 0;
+            var errors = new List<string>();
+
+            foreach (var tag in tags)
+            {
+                try
+                {
+                    var existing = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tag.Name);
+                    if (existing != null)
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    tag.Id = Guid.NewGuid();
+                    tag.CreatedAt = DateTime.UtcNow;
+                    tag.UpdatedAt = DateTime.UtcNow;
+
+                    _context.Tags.Add(tag);
+                    created++;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Error importing tag {tag.Name}: {ex.Message}");
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Imported {Count} tags, skipped {Skipped}", created, skipped);
+
+            return Ok(new
+            {
+                created,
+                skipped,
+                errors = errors.Count > 0 ? errors : null
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing tags");
+            return StatusCode(500, "Internal server error");
+        }
     }
 
     /// <summary>
-    /// Get tag count by site
+    /// Get tag statistics
     /// </summary>
-    [HttpGet("stats/count-by-site")]
-    [ProducesResponseType(typeof(Dictionary<string, int>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetTagCountBySite()
+    [HttpGet("stats")]
+    public async Task<ActionResult<object>> GetStats()
     {
-        var stats = await _tagService.GetTagCountBySiteAsync();
-        return Ok(stats);
-    }
+        try
+        {
+            var stats = new
+            {
+                totalTags = await _context.Tags.CountAsync(),
+                enabledTags = await _context.Tags.CountAsync(t => t.IsEnabled),
+                disabledTags = await _context.Tags.CountAsync(t => !t.IsEnabled),
+                tagsByType = await _context.Tags
+                    .GroupBy(t => t.DataType)
+                    .Select(g => new { type = g.Key, count = g.Count() })
+                    .ToListAsync(),
+                tagsByDevice = await _context.Tags
+                    .GroupBy(t => t.DeviceType)
+                    .Select(g => new { device = g.Key, count = g.Count() })
+                    .ToListAsync()
+            };
 
-    /// <summary>
-    /// Get latest tag value
-    /// </summary>
-    [HttpGet("{tagName}/value/latest")]
-    [ProducesResponseType(typeof(TagValue), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetLatestValue(string tagName)
-    {
-        // Check cache first
-        var cachedValue = await _cacheService.GetTagValueAsync(tagName);
-        if (cachedValue != null)
-            return Ok(cachedValue);
-
-        // Fall back to InfluxDB
-        var value = await _influxService.QueryLatestValueAsync(tagName);
-        if (value == null)
-            return NotFound();
-
-        return Ok(value);
-    }
-
-    /// <summary>
-    /// Get historical tag values
-    /// </summary>
-    [HttpGet("{tagName}/history")]
-    [ProducesResponseType(typeof(List<TagValue>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetHistory(
-        string tagName,
-        [FromQuery] DateTime start,
-        [FromQuery] DateTime end)
-    {
-        var history = await _influxService.QueryTagHistoryAsync(tagName, start, end);
-        return Ok(history);
-    }
-
-    /// <summary>
-    /// Get aggregated statistics for a tag
-    /// </summary>
-    [HttpGet("{tagName}/aggregates")]
-    [ProducesResponseType(typeof(Dictionary<string, object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAggregates(
-        string tagName,
-        [FromQuery] DateTime start,
-        [FromQuery] DateTime end,
-        [FromQuery] string window = "1m")
-    {
-        var aggregates = await _influxService.QueryAggregatesAsync(tagName, start, end, window);
-        return Ok(aggregates);
-    }
-
-    /// <summary>
-    /// Batch create tags
-    /// </summary>
-    [HttpPost("batch")]
-    [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
-    public async Task<IActionResult> CreateTagsBatch([FromBody] List<Tag> tags)
-    {
-        var count = await _tagService.CreateTagsBatchAsync(tags);
-        return CreatedAtAction(nameof(GetTags), new { count });
+            return Ok(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving tag statistics");
+            return StatusCode(500, "Internal server error");
+        }
     }
 }

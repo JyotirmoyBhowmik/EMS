@@ -1,30 +1,45 @@
 namespace AlarmManagement.Models;
 
-public class Alarm
+public class AlarmRule
 {
-    public int Id { get; set; }
-    public required string TagName { get; set; }
-    public required string AlarmType { get; set; } // High, Low, Critical
-    public required string Priority { get; set; } // Critical, High, Medium, Low
-    public double Value { get; set; }
-    public double Threshold { get; set; }
-    public required string Message { get; set; }
-    public DateTime TriggeredAt { get; set; } = DateTime.UtcNow;
-    public bool IsAcknowledged { get; set; } = false;
-    public string? AcknowledgedBy { get; set; }
-    public DateTime? AcknowledgedAt { get; set; }
-    public bool IsCleared { get; set; } = false;
-    public DateTime? ClearedAt { get; set; }
-    public string? Site { get; set; }
-    public string? Device { get; set; }
+    public Guid Id { get; set; }
+    public Guid TagId { get; set; }
+    public Tag? Tag { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Condition { get; set; } = string.Empty; // GreaterThan, LessThan, Equal
+    public double ThresholdValue { get; set; }
+    public string Priority { get; set; } = "Medium";
+    public string? Message { get; set; }
+    public bool IsEnabled { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
 }
 
 public class AlarmEvent
 {
-    public required string TagName { get; set; }
-    public double Value { get; set; }
-    public DateTime Timestamp { get; set; }
-    public required string AlarmType { get; set; }
-    public double Threshold { get; set; }
-    public required string Priority { get; set; }
+    public Guid Id { get; set; }
+    public Guid RuleId { get; set; }
+    public AlarmRule? Rule { get; set; }
+    public double TriggerValue { get; set; }
+    public DateTime TriggeredAt { get; set; }
+    public bool IsAcknowledged { get; set; }
+    public DateTime? AcknowledgedAt { get; set; }
+    public Guid? AcknowledgedByUserId { get; set; }
+    public User? AcknowledgedByUser { get; set; }
+    public string? AcknowledgmentComment { get; set; }
+    public bool IsCleared { get; set; }
+    public DateTime? ClearedAt { get; set; }
+}
+
+public class Tag
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+}
+
+public class User
+{
+    public Guid Id { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
 }

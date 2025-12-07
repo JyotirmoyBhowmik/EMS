@@ -53,6 +53,7 @@ builder.Services.AddSingleton<InfluxDBService>(sp =>
 // SCADA services
 builder.Services.AddSingleton<TagCacheService>();
 builder.Services.AddScoped<TagManagementService>();
+builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddHostedService<TagSyncService>();
 
 // CORS
