@@ -1,0 +1,257 @@
+{
+    "info": {
+        "name": "Enterprise SCADA System API",
+        "description": "Complete API collection for testing all SCADA endpoints",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "version": "1.0.0"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{jwt_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin123!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Setup MFA",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/mfa/setup?email=admin@scada.local",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "mfa",
+                                "setup"
+                            ],
+                            "query": [
+                                {
+                                    "key": "email",
+                                    "value": "admin@scada.local"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Tags",
+            "item": [
+                {
+                    "name": "Get All Tags",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/tags?skip=0&take=50",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tags"
+                            ],
+                            "query": [
+                                {
+                                    "key": "skip",
+                                    "value": "0"
+                                },
+                                {
+                                    "key": "take",
+                                    "value": "50"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Tag by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/tags/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tags",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Tag",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"SITE01.PLC01.Temperature\",\n  \"description\": \"PLC Temperature Sensor\",\n  \"dataType\": \"Float\",\n  \"units\": \"°C\",\n  \"minValue\": -50,\n  \"maxValue\": 150,\n  \"scanRate\": 1000,\n  \"site\": \"SITE01\",\n  \"device\": \"PLC01\",\n  \"isEnabled\": true,\n  \"logHistory\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/tags",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tags"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Latest Value",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/tags/SITE01.TURBINE01.PowerOutput/value/latest",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tags",
+                                "SITE01.TURBINE01.PowerOutput",
+                                "value",
+                                "latest"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get History",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/tags/SITE01.TURBINE01.PowerOutput/history?start=2025-01-01T00:00:00Z&end=2025-01-02T00:00:00Z",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tags",
+                                "SITE01.TURBINE01.PowerOutput",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "start",
+                                    "value": "2025-01-01T00:00:00Z"
+                                },
+                                {
+                                    "key": "end",
+                                    "value": "2025-01-02T00:00:00Z"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Search Tags",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/tags/search?query=TURBINE",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tags",
+                                "search"
+                            ],
+                            "query": [
+                                {
+                                    "key": "query",
+                                    "value": "TURBINE"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Tag Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/tags/stats/count-by-site",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "tags",
+                                "stats",
+                                "count-by-site"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:5000",
+            "type": "string"
+        },
+        {
+            "key": "jwt_token",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

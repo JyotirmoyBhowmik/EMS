@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: scada-clickhouse
+    ports:
+      - "8123:8123" # HTTP interface
+      - "9000:9000" # Native interface
+    environment:
+      - CLICKHOUSE_DB=scada_analytics
+      - CLICKHOUSE_USER=scada
+      - CLICKHOUSE_PASSWORD=clickhouse123
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./database/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+volumes:
+  clickhouse-data:

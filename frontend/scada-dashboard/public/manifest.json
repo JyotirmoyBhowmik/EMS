@@ -1,0 +1,62 @@
+{
+    "short_name": "SCADA",
+    "name": "Enterprise SCADA System",
+    "description": "Next-Generation Industrial IoT SCADA Platform with AI/ML",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "start_url": "/",
+    "display": "standalone",
+    "theme_color": "#0f172a",
+    "background_color": "#0f172a",
+    "orientation": "any",
+    "scope": "/",
+    "categories": [
+        "productivity",
+        "utilities",
+        "business"
+    ],
+    "screenshots": [
+        {
+            "src": "/screenshot-desktop.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide"
+        },
+        {
+            "src": "/screenshot-mobile.png",
+            "sizes": "750x1334",
+            "type": "image/png",
+            "form_factor": "narrow"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Dashboard",
+            "url": "/dashboard",
+            "description": "View main dashboard"
+        },
+        {
+            "name": "Alarms",
+            "url": "/alarms",
+            "description": "View active alarms"
+        },
+        {
+            "name": "Tags",
+            "url": "/tags",
+            "description": "Manage tags"
+        }
+    ],
+    "prefer_related_applications": false
+}

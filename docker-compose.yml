@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # ===== Databases =====
-  
+
   influxdb:
     image: influxdb:2.7
     container_name: scada-influxdb
@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
 
   # ===== Message Broker =====
-  
+
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     container_name: scada-rabbitmq
@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
 
   # ===== Cache =====
-  
+
   redis:
     image: redis:7-alpine
     container_name: scada-redis
@@ -71,7 +71,7 @@ services:
     restart: unless-stopped
 
   # ===== Protocol Middleware =====
-  
+
   node-red:
     image: nodered/node-red:latest
     container_name: scada-node-red
@@ -87,7 +87,7 @@ services:
     restart: unless-stopped
 
   # ===== Backend Services =====
-  
+
   scada-core:
     build:
       context: ./backend/ScadaCore
@@ -204,75 +204,6 @@ services:
       - DATA_ACQUISITION_URL=http://data-acquisition:5000
       - ALARM_MANAGEMENT_URL=http://alarm-management:5000
       - AUTH_SERVICE_URL=http://auth-service:5000
-      - REPORTING_SERVICE_URL=http://reporting-service:5000
-      - JWT_SECRET=change-this-secret-key-in-production-use-256-bit
-    depends_on:
-      - scada-core
-      - data-acquisition
-      - alarm-management
-      - auth-service
-      - reporting-service
-    networks:
-      - scada-network
-    restart: unless-stopped
-
-  # ===== Frontend =====
-  
-  frontend:
-    build:
-      context: ./frontend/scada-dashboard
-      dockerfile: Dockerfile
-    container_name: scada-frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - REACT_APP_API_URL=http://localhost:5000
-      - REACT_APP_WS_URL=ws://localhost:5000
-    depends_on:
-      - api-gateway
-    networks:
-      - scada-network
-    restart: unless-stopped
-
-  # ===== Monitoring =====
-  
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: scada-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    networks:
-      - scada-network
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: scada-grafana
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_INSTALL_PLUGINS=grafana-clock-panel
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./infrastructure/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./infrastructure/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
-    depends_on:
-      - prometheus
-      - influxdb
-    networks:
-      - scada-network
-    restart: unless-stopped
-
-networks:
-  scada-network:
-    driver: bridge
 
 volumes:
   influxdb-data:
