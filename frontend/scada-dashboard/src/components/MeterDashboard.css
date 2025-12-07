@@ -1,0 +1,188 @@
+.meter-dashboard {
+    padding: 20px;
+    background: #f5f5f5;
+    min-height: 100vh;
+}
+
+.meter-dashboard h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Dashboard Stats */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.stat-card.green {
+    border-left: 4px solid #4CAF50;
+}
+
+.stat-card.blue {
+    border-left: 4px solid #2196F3;
+}
+
+.stat-card.yellow {
+    border-left: 4px solid #FFC107;
+}
+
+.stat-card.red {
+    border-left: 4px solid #F44336;
+}
+
+.stat-icon {
+    font-size: 32px;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #666;
+    margin-top: 2px;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.dashboard-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.dashboard-card h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: #333;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+}
+
+/* Meter Map */
+.meter-map {
+    padding: 20px;
+    background: #fafafa;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+.map-level {
+    display: flex;
+    gap: 40px;
+    padding: 20px 0;
+    position: relative;
+}
+
+.map-level.level-0 {
+    justify-content: center;
+}
+
+.map-level.level-1,
+.map-level.level-2,
+.map-level.level-3 {
+    padding-left: 40px;
+}
+
+.meter-node-container {
+    position: relative;
+}
+
+.meter-node {
+    background: white;
+    border: 3px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    min-width: 180px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.meter-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.meter-node-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.status-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.meter-node-name {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+.meter-node-type {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.meter-node-status {
+    font-size: 11px;
+    color: #999;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .meter-dashboard h1 {
+        font-size: 24px;
+    }
+}
