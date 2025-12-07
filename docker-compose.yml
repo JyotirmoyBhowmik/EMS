@@ -154,6 +154,38 @@ services:
       - scada-network
     restart: unless-stopped
 
+  energy-management:
+    build:
+      context: ./backend/EnergyManagement
+      dockerfile: Dockerfile
+    container_name: scada-energy-management
+    ports:
+      - "5010:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - POSTGRES_CONNECTION=Host=postgres;Database=scada;Username=scada;Password=scada123
+    depends_on:
+      - postgres
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  work-order-service:
+    build:
+      context: ./backend/WorkOrderService
+      dockerfile: Dockerfile
+    container_name: scada-work-order-service
+    ports:
+      - "5011:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - POSTGRES_CONNECTION=Host=postgres;Database=scada;Username=scada;Password=scada123
+    depends_on:
+      - postgres
+    networks:
+      - scada-network
+    restart: unless-stopped
+
   auth-service:
     build:
       context: ./backend/AuthService

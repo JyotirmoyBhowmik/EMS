@@ -812,6 +812,15 @@ docker exec -i scada-postgres psql -U scada -d scada < database/migrations/002_s
 # This includes: Siemens PLCs, Schneider meters, compressors, HVAC, flow meters, manufacturing equipment
 docker exec -i scada-postgres psql -U scada -d scada < database/migrations/003_extended_equipment_tags.sql
 
+# **NEW in v2.1** - Load Energy Management, Work Orders, and Scheduled Reports
+docker exec -i scada-postgres psql -U scada -d scada < database/migrations/004_energy_workorders_scheduled_reports.sql
+
+# **NEW in v2.1** - Load Hierarchical Energy Metering (supports 92+ meters)
+docker exec -i scada-postgres psql -U scada -d scada < database/migrations/005_hierarchical_metering.sql
+
+# **NEW in v2.1** - Load Meter Management Enhancements (CT/PT values, status tracking)
+docker exec -i scada-postgres psql -U scada -d scada < database/migrations/006_meter_management_enhancements.sql
+
 # Verify data was loaded
 docker exec -it scada-postgres psql -U scada -d scada -c "SELECT COUNT(*) as total_tags FROM tags;"
 # Should show 130+ tags

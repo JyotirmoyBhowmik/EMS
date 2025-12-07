@@ -183,7 +183,7 @@ const MeterDashboard: React.FC = () => {
                                 linkOpacity={0.5}
                                 linkHoverOthersOpacity={0.1}
                                 enableLinkGradient={true}
-                                label For={(node: any) => `${node.label}`}
+                                label={(node: any) => `${node.label}`}
                                 labelOrientation="horizontal"
                                 labelPadding={16}
                                 labelTextColor={{ from: 'color', modifiers: [['darker', 1]] }}

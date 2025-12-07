@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using EnergyManagement.Models;
+using EnergyManagement.Controllers;
 
 namespace EnergyManagement.Data;
 
@@ -12,6 +13,8 @@ public class EnergyDbContext : DbContext
     public DbSet<EnergyConsumption> EnergyConsumptions => Set<EnergyConsumption>();
     public DbSet<EnergyTarget> EnergyTargets => Set<EnergyTarget>();
     public DbSet<LoadProfile> LoadProfiles => Set<LoadProfile>();
+    public DbSet<EnergyMeter> EnergyMeters => Set<EnergyMeter>();
+    public DbSet<MeterReading> MeterReadings => Set<MeterReading>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -77,6 +80,36 @@ public class EnergyDbContext : DbContext
 
             // Unique constraint
             entity.HasIndex(e => new { e.SiteId, e.ProfileDate, e.HourOfDay }).IsUnique();
+        });
+
+        // Energy Meters
+        modelBuilder.Entity<EnergyMeter>(entity =>
+        {
+            entity.ToTable("energy_meters");
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.Id).HasColumnName("id");
+            entity.Property(m => m.MeterNumber).HasColumnName("meter_number").HasMaxLength(100).IsRequired();
+            entity.Property(m => m.MeterName).HasColumnName("meter_name").HasMaxLength(200).IsRequired();
+            entity.Property(m => m.ParentMeterId).HasColumnName("parent_meter_id");
+            entity.Property(m => m.Level).HasColumnName("level");
+            entity.Property(m => m.CtRatio).HasColumnName("ct_ratio");
+            entity.Property(m => m.PtRatio).HasColumnName("pt_ratio");
+            entity.Property(m => m.Status).HasColumnName("status");
+            entity.Property(m => m.HealthStatus).HasColumnName("health_status");
+            entity.Property(m => m.CommunicationStatus).HasColumnName("communication_status");
+            entity.HasIndex(m => m.ParentMeterId);
+        });
+
+        // Meter Readings  
+        modelBuilder.Entity<MeterReading>(entity =>
+        {
+            entity.ToTable("meter_readings");
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Id).HasColumnName("id");
+            entity.Property(r => r.MeterId).HasColumnName("meter_id").IsRequired();
+            entity.Property(r => r.Timestamp).HasColumnName("timestamp").IsRequired();
+            entity.HasIndex(r => r.MeterId);
+            entity.HasIndex(r => r.Timestamp);
         });
     }
 }

@@ -9,7 +9,7 @@ namespace EnergyManagement.Controllers;
 [Route("api/[controller]")]
 public class EnergyController : ControllerBase
 {
-    private the EnergyDbContext _context;
+    private readonly EnergyDbContext _context;
     private readonly ILogger<EnergyController> _logger;
 
     public EnergyController(EnergyDbContext context, ILogger<EnergyController> logger)
