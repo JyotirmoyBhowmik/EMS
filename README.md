@@ -26,6 +26,21 @@ Enterprise-grade SCADA (Supervisory Control and Data Acquisition) system designe
 ✅ **Scalability**: Kubernetes auto-scaling from hundreds to millions of tags  
 ✅ **Mobile Access**: Responsive web interface for remote monitoring  
 
+## Unified Dashboard (New in v2.1)
+
+The system now features a **Single Pane of Glass** dashboard designed for high scalability (1000+ machines):
+
+- **3-Level Hierarchical Filtering**: Site → Machine Type → Machine ID
+- **6 Integrated Tabs**: 
+  - **Dashboard**: Real-time status, health, and KPIs
+  - **Tags**: 100,000+ tags with search and quality indicators
+  - **Alarms**: Priority-based alarm management with bulk acknowledgment
+  - **Trends**: Multi-pen historical trending and comparison
+  - **Reports**: Automated scheduling and PDF/Excel generation
+  - **Settings**: Per-user customization and favorites
+- **Progressive Disclosure**: Visual design that handles complexity without clutter
+- **Persistent State**: Remembers user filters and view preferences
+
 ## Project Structure
 
 ```
@@ -36,6 +51,9 @@ EMS/
 │   ├── AlarmManagement/       # Alarm processing & notifications
 │   ├── AuthService/           # Authentication & authorization
 │   ├── ReportingService/      # Report generation
+│   ├── EnergyManagement/      # Energy metering & analysis (New)
+│   ├── WorkOrderService/      # Maintenance work orders (New)
+│   ├── OpcUaServer/           # OPC UA connectivity
 │   └── ApiGateway/            # Unified API gateway
 ├── frontend/                   # React web application
 │   └── scada-dashboard/       # Main dashboard
@@ -325,4 +343,5 @@ Copyright © 2025 - All rights reserved
 
 ## Version History
 
+- **v2.1.0** (Current) - Added Unified Dashboard, Energy Management, and Work Order Service
 - **v1.0.0** (Current) - Initial release with core SCADA functionality
