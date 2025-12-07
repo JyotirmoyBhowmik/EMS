@@ -1,0 +1,166 @@
+[
+    {
+        "id": "protocol-driver-modbus",
+        "type": "tab",
+        "label": "Modbus Driver",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "modbus-tcp-node",
+        "type": "modbus-read",
+        "z": "protocol-driver-modbus",
+        "name": "Read Modbus Registers",
+        "topic": "",
+        "showStatusActivities": true,
+        "showErrors": true,
+        "unitid": "1",
+        "dataType": "HoldingRegister",
+        "adr": "0",
+        "quantity": "10",
+        "rate": "1",
+        "rateUnit": "s",
+        "delayOnStart": false,
+        "startDelayTime": "",
+        "server": "modbus-server-config",
+        "useIOFile": false,
+        "ioFile": "",
+        "useIOForPayload": false,
+        "emptyMsgOnFail": false,
+        "x": 240,
+        "y": 100,
+        "wires": [
+            [
+                "transform-modbus-data"
+            ]
+        ]
+    },
+    {
+        "id": "transform-modbus-data",
+        "type": "function",
+        "z": "protocol-driver-modbus",
+        "name": "Transform to Tag Format",
+        "func": "// Transform Modbus data to SCADA tag format\nconst tags = [];\n\nfor (let i = 0; i < msg.payload.length; i++) {\n    tags.push({\n        tagName: `SITE01.PLC01.Register${i}`,\n        value: msg.payload[i],\n        timestamp: new Date().toISOString(),\n        quality: \"Good\",\n        site: \"SITE01\",\n        device: \"PLC01\"\n    });\n}\n\nreturn { payload: tags };",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 100,
+        "wires": [
+            [
+                "publish-to-rabbitmq"
+            ]
+        ]
+    },
+    {
+        "id": "publish-to-rabbitmq",
+        "type": "amqp-out",
+        "z": "protocol-driver-modbus",
+        "name": "Publish to RabbitMQ",
+        "topic": "scada.data",
+        "routingkey": "tag.#",
+        "broker": "rabbitmq-broker",
+        "x": 720,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "mqtt-listener",
+        "type": "mqtt in",
+        "z": "protocol-driver-modbus",
+        "name": "MQTT Subscribe",
+        "topic": "scada/+/+",
+        "qos": "1",
+        "datatype": "json",
+        "broker": "mqtt-broker-config",
+        "nl": false,
+        "rap": false,
+        "x": 230,
+        "y": 200,
+        "wires": [
+            [
+                "transform-mqtt-data"
+            ]
+        ]
+    },
+    {
+        "id": "transform-mqtt-data",
+        "type": "function",
+        "z": "protocol-driver-modbus",
+        "name": "Transform MQTT",
+        "func": "// Parse MQTT topic: scada/site/device\nconst parts = msg.topic.split('/');\n\nreturn {\n    payload: {\n        tagName: `${parts[1]}.${parts[2]}.${msg.payload.tagId}`,\n        value: msg.payload.value,\n        timestamp: new Date().toISOString(),\n        quality: msg.payload.quality || \"Good\",\n        site: parts[1],\n        device: parts[2]\n    }\n};",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 450,
+        "y": 200,
+        "wires": [
+            [
+                "publish-to-rabbitmq"
+            ]
+        ]
+    },
+    {
+        "id": "modbus-server-config",
+        "type": "modbus-client",
+        "name": "Modbus TCP Server",
+        "clienttype": "tcp",
+        "bufferCommands": true,
+        "stateLogEnabled": false,
+        "queueLogEnabled": false,
+        "tcpHost": "127.0.0.1",
+        "tcpPort": "502",
+        "tcpType": "DEFAULT",
+        "serialPort": "/dev/ttyUSB",
+        "serialType": "RTU-BUFFERD",
+        "serialBaudrate": "9600",
+        "serialDatabits": "8",
+        "serialStopbits": "1",
+        "serialParity": "none",
+        "serialConnectionDelay": "100",
+        "unit_id": "1",
+        "commandDelay": "1",
+        "clientTimeout": "1000",
+        "reconnectOnTimeout": true,
+        "reconnectTimeout": "2000",
+        "parallelUnitIdsAllowed": true
+    },
+    {
+        "id": "rabbitmq-broker",
+        "type": "amqp-broker",
+        "name": "SCADA RabbitMQ",
+        "host": "rabbitmq",
+        "port": "5672",
+        "vhost": "/",
+        "keepalive": "30",
+        "usetls": false,
+        "usetopology": false,
+        "topology": "{\"exchanges\":[{\"name\":\"scada.data\",\"type\":\"topic\",\"options\":{\"durable\":true}}]}"
+    },
+    {
+        "id": "mqtt-broker-config",
+        "type": "mqtt-broker",
+        "name": "SCADA MQTT",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
+    }
+]

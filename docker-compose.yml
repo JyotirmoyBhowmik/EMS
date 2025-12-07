@@ -1,0 +1,284 @@
+version: '3.8'
+
+services:
+  # ===== Databases =====
+  
+  influxdb:
+    image: influxdb:2.7
+    container_name: scada-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin123456
+      - DOCKER_INFLUXDB_INIT_ORG=scada-org
+      - DOCKER_INFLUXDB_INIT_BUCKET=scada-data
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=scada-token-change-in-production
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - ./database/influxdb/config.yml:/etc/influxdb2/config.yml
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: scada-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=scada
+      - POSTGRES_PASSWORD=scada123
+      - POSTGRES_DB=scada
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  # ===== Message Broker =====
+  
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: scada-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ./infrastructure/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  # ===== Cache =====
+  
+  redis:
+    image: redis:7-alpine
+    container_name: scada-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redis123
+    volumes:
+      - redis-data:/data
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  # ===== Protocol Middleware =====
+  
+  node-red:
+    image: nodered/node-red:latest
+    container_name: scada-node-red
+    ports:
+      - "1880:1880"
+    environment:
+      - TZ=UTC
+    volumes:
+      - node-red-data:/data
+      - ./protocols/node-red:/data/projects
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  # ===== Backend Services =====
+  
+  scada-core:
+    build:
+      context: ./backend/ScadaCore
+      dockerfile: Dockerfile
+    container_name: scada-core
+    ports:
+      - "5001:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - INFLUXDB_URL=http://influxdb:8086
+      - POSTGRES_CONNECTION=Host=postgres;Database=scada;Username=scada;Password=scada123
+      - REDIS_CONNECTION=redis:6379,password=redis123
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - influxdb
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  data-acquisition:
+    build:
+      context: ./backend/DataAcquisition
+      dockerfile: Dockerfile
+    container_name: scada-data-acquisition
+    ports:
+      - "5002:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - INFLUXDB_URL=http://influxdb:8086
+      - RABBITMQ_HOST=rabbitmq
+      - REDIS_CONNECTION=redis:6379,password=redis123
+    depends_on:
+      - influxdb
+      - rabbitmq
+      - redis
+      - scada-core
+    networks:
+      - scada-network
+    restart: unless-stopped
+    deploy:
+      replicas: 3
+
+  alarm-management:
+    build:
+      context: ./backend/AlarmManagement
+      dockerfile: Dockerfile
+    container_name: scada-alarm-management
+    ports:
+      - "5003:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - POSTGRES_CONNECTION=Host=postgres;Database=scada;Username=scada;Password=scada123
+      - RABBITMQ_HOST=rabbitmq
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: ./backend/AuthService
+      dockerfile: Dockerfile
+    container_name: scada-auth-service
+    ports:
+      - "5004:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - POSTGRES_CONNECTION=Host=postgres;Database=scada;Username=scada;Password=scada123
+      - JWT_SECRET=change-this-secret-key-in-production-use-256-bit
+      - REDIS_CONNECTION=redis:6379,password=redis123
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  reporting-service:
+    build:
+      context: ./backend/ReportingService
+      dockerfile: Dockerfile
+    container_name: scada-reporting-service
+    ports:
+      - "5005:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - INFLUXDB_URL=http://influxdb:8086
+      - POSTGRES_CONNECTION=Host=postgres;Database=scada;Username=scada;Password=scada123
+    depends_on:
+      - influxdb
+      - postgres
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ./backend/ApiGateway
+      dockerfile: Dockerfile
+    container_name: scada-api-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - SCADA_CORE_URL=http://scada-core:5000
+      - DATA_ACQUISITION_URL=http://data-acquisition:5000
+      - ALARM_MANAGEMENT_URL=http://alarm-management:5000
+      - AUTH_SERVICE_URL=http://auth-service:5000
+      - REPORTING_SERVICE_URL=http://reporting-service:5000
+      - JWT_SECRET=change-this-secret-key-in-production-use-256-bit
+    depends_on:
+      - scada-core
+      - data-acquisition
+      - alarm-management
+      - auth-service
+      - reporting-service
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  # ===== Frontend =====
+  
+  frontend:
+    build:
+      context: ./frontend/scada-dashboard
+      dockerfile: Dockerfile
+    container_name: scada-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+      - REACT_APP_WS_URL=ws://localhost:5000
+    depends_on:
+      - api-gateway
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  # ===== Monitoring =====
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: scada-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: scada-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./infrastructure/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+      - influxdb
+    networks:
+      - scada-network
+    restart: unless-stopped
+
+networks:
+  scada-network:
+    driver: bridge
+
+volumes:
+  influxdb-data:
+  postgres-data:
+  rabbitmq-data:
+  redis-data:
+  node-red-data:
+  prometheus-data:
+  grafana-data:

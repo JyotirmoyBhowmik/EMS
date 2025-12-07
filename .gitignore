@@ -1,0 +1,119 @@
+# Git ignore for Enterprise SCADA System
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.log
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.next/
+.cache/
+
+# React
+.eslintcache
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+docker-compose.override.yml
+
+# Kubernetes secrets
+*-secrets.yaml
+*.key
+*.crt
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage/
+*.cover
+.coverage
+.coverage.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Certificates
+*.pfx
+*.p12
+
+# Backup files
+*.bak
+*.backup
+
+# InfluxDB data
+influxdb-data/
+
+# PostgreSQL data
+postgres-data/
+
+# RabbitMQ data
+rabbitmq-data/
+
+# Redis data
+redis-data/
+
+# Node-RED data
+node-red-data/flows.json
+node-red-data/flows_cred.json

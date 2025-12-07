@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  /* Card component */
+  .card {
+    @apply bg-scada-surface rounded-lg border border-scada-border p-4 shadow-lg;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-scada-surface hover:bg-gray-700 text-white font-medium px-4 py-2 rounded-lg border border-scada-border transition-colors duration-200;
+  }
+
+  /* Status indicators */
+  .status-good {
+    @apply text-scada-good;
+  }
+
+  .status-warning {
+    @apply text-scada-warning;
+  }
+
+  .status-alarm {
+    @apply text-scada-alarm animate-pulse-slow;
+  }
+
+  .status-critical {
+    @apply text-scada-critical animate-bounce-slow;
+  }
+
+  /* Data value display */
+  .tag-value {
+    @apply text-2xl font-bold font-mono;
+  }
+
+  .tag-label {
+    @apply text-sm text-gray-400 uppercase tracking-wide;
+  }
+
+  /* Chart container */
+  .chart-container {
+    @apply w-full h-64 bg-scada-surface rounded-lg p-4;
+  }
+
+  /* Alarm panel */
+  .alarm-row {
+    @apply border-l-4 border-scada-alarm bg-scada-surface p-3 rounded-r-lg mb-2 hover:bg-gray-700 transition-colors cursor-pointer;
+  }
+
+  .alarm-row.critical {
+    @apply border-scada-critical;
+  }
+
+  .alarm-row.acknowledged {
+    @apply opacity-60 border-gray-500;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500;
+  }
+
+  /* Glassmorphism effect */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-400 to-purple-500 text-transparent bg-clip-text;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-scada-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-scada-border rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-600;
+}
+
+/* Transitions */
+.fade-enter {
+  opacity: 0;
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 300ms;
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
+}
+
+/* Utility animations */
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+  }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
